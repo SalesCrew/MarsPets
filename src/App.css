@@ -220,7 +220,7 @@
   display: flex;
   align-items: center;
   pointer-events: auto;
-  z-index: 3;
+  z-index: 10;
 }
 
 .filters {
@@ -746,7 +746,7 @@
   backdrop-filter: blur(12px);
   border: 1px solid rgba(255,255,255,0.15);
   box-shadow: 0 2px 8px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04);
-  z-index: 3;
+  z-index: 1;
 }
 
 .chart-area {
@@ -767,7 +767,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 3;
+  z-index: 1;
 }
 
 .pie-chart-container {
