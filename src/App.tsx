@@ -42,7 +42,7 @@ function App() {
   const [selectedMarket, setSelectedMarket] = useState<string>('Alle Märkte')
   const [selectedStartDate, setSelectedStartDate] = useState<Date | null>(null)
   const [selectedEndDate, setSelectedEndDate] = useState<Date | null>(null)
-  const [hoveredRegion, setHoveredRegion] = useState<{ name: string; value: number; mtdValue: number; x: number; y: number } | null>(null)
+
   
   // AI Chat states
   const [chatMessages, setChatMessages] = useState<{ id: number; text: string; isUser: boolean; timestamp: Date }[]>([
@@ -203,13 +203,7 @@ function App() {
     }
   }
 
-  const calculateMTDValue = (regionName: string) => {
-    // Simulate MTD calculation - in real app this would filter by current month
-    const markets = allMarketsData[regionName as keyof typeof allMarketsData] || []
-    const total = markets.reduce((sum, market) => sum + market.sellInValue, 0)
-    // For demo, assume MTD is ~40% of total (simulating we're partway through month)
-    return Math.round(total * 0.4)
-  }
+
 
   const totalSellIn = calculateTotalSellIn()
   const goalValue = calculateGoalValue()
@@ -290,8 +284,12 @@ function App() {
     }
     
     if (lowerInput.includes('region') || lowerInput.includes('best') || lowerInput.includes('top')) {
-      const topRegion = regionPercentages.reduce((max, region) => region.total > max.total ? region : max)
-      return `Your top performing region is ${topRegion.region} with ${topRegion.total.toLocaleString('de-DE')}€ in sales, representing ${topRegion.percentage.toFixed(1)}% of total revenue.`
+      const allRegionData = Object.entries(allMarketsData).map(([region, markets]) => ({
+        region,
+        total: markets.reduce((sum, market) => sum + market.sellInValue, 0)
+      }))
+      const topRegion = allRegionData.reduce((max, region) => region.total > max.total ? region : max)
+      return `Your top performing region is ${topRegion.region} with ${topRegion.total.toLocaleString('de-DE')}€ in sales.`
     }
     
     if (lowerInput.includes('goal') || lowerInput.includes('target')) {
@@ -549,7 +547,7 @@ function App() {
                       </div>
                     </div>
                     <div className="grid-filters">
-                      {(['All', 'MTD', 'Q1', 'Q2', 'Q3', 'Q4'] as const).map((filter, index) => (
+                      {(['All', 'MTD', 'Q1', 'Q2', 'Q3', 'Q4'] as const).map((filter) => (
                         <button
                           key={filter}
                           className={`grid-filter-btn ${currentFilter === filter ? 'active' : ''}`}
@@ -627,3 +625,6 @@ function App() {
 }
 
 export default App
+
+
+

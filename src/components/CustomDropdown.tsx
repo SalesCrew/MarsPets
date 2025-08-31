@@ -8,7 +8,7 @@ type DropdownProps = {
   searchable?: boolean
 }
 
-const CustomDropdown = ({ label, options, value, onChange, searchable = false }: DropdownProps) => {
+const CustomDropdown = ({ options, value, onChange, searchable = false }: DropdownProps) => {
   const [isOpen, setIsOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
 

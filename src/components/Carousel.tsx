@@ -98,7 +98,7 @@ function Carousel({ regions, allMarketsData }: CarouselProps) {
     }
   }
 
-  const onPointerUp: React.PointerEventHandler<HTMLDivElement> = (e) => {
+  const onPointerUp: React.PointerEventHandler<HTMLDivElement> = () => {
     if (pointerStartX.current === null) return
     const delta = dragOffset.current
     pointerStartX.current = null
