@@ -203,7 +203,6 @@
   inset: 0;
   z-index: 2;
   pointer-events: none;
-  overflow: visible;
 }
 
 .top-area {
@@ -222,7 +221,6 @@
   align-items: center;
   pointer-events: auto;
   z-index: 3;
-  overflow: visible;
 }
 
 .filters {
@@ -230,7 +228,6 @@
   align-items: center;
   gap: 61px;
   width: 100%;
-  overflow: visible;
 }
 
 .status-indicator {
@@ -309,7 +306,6 @@
   align-items: center;
   gap: 8px;
   position: relative;
-  overflow: visible;
 }
 
 .filter-item:not(:last-child)::after {
@@ -632,7 +628,22 @@
 /* Custom Dropdown Styles */
 .dropdown-container {
   position: relative;
-  z-index: 9999;
+}
+
+/* Force dropdown to appear above everything */
+.dropdown-container:has(.dropdown-menu) {
+  z-index: 999998 !important;
+  position: relative !important;
+}
+
+/* Ensure filter items don't clip dropdowns */
+.filter-item {
+  overflow: visible !important;
+}
+
+/* Ensure top-area doesn't clip dropdowns */
+.top-area {
+  overflow: visible !important;
 }
 
 .dropdown-trigger {
@@ -675,7 +686,7 @@
   border: 1px solid rgba(0,0,0,0.08);
   border-radius: 6px;
   box-shadow: 0 4px 16px rgba(0,0,0,0.1);
-  z-index: 10000;
+  z-index: 999999 !important;
   max-height: 200px;
   overflow-y: auto;
   margin-top: 4px;
