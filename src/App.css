@@ -40,6 +40,7 @@
   background: linear-gradient(135deg, rgba(0, 0, 159, 0.1) 0%, rgba(254, 16, 25, 0.1) 100%);
   transition: box-shadow 0.3s ease;
   z-index: 2;
+  overflow: visible !important;
 }
 
 .card--ai-thinking {
@@ -202,6 +203,7 @@
   inset: 0;
   z-index: 2;
   pointer-events: none;
+  overflow: visible;
 }
 
 .top-area {
@@ -220,6 +222,7 @@
   align-items: center;
   pointer-events: auto;
   z-index: 3;
+  overflow: visible;
 }
 
 .filters {
@@ -227,6 +230,7 @@
   align-items: center;
   gap: 61px;
   width: 100%;
+  overflow: visible;
 }
 
 .status-indicator {
@@ -305,6 +309,7 @@
   align-items: center;
   gap: 8px;
   position: relative;
+  overflow: visible;
 }
 
 .filter-item:not(:last-child)::after {
