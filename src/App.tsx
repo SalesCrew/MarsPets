@@ -4,7 +4,7 @@ import Header from './components/Header'
 import Carousel from './components/Carousel'
 import Calendar from './components/Calendar'
 import CustomDropdown from './components/CustomDropdown'
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 
 export type MarketData = {
   name: string
@@ -83,35 +83,37 @@ function App() {
 
 
 
-  const generateMarketData = (startPlz: number): MarketData[] => {
-    const marketTypes = ['Billa', 'Billa+', 'Fressnapf', 'Spar', 'Interspar', 'Merkur', 'Hofer', 'Penny', 'Lidl']
-    const promotionValues = [2000, 4000, 6000]
-    
-    return Array.from({ length: 20 }, (_, i) => {
-      const marketType = marketTypes[i % marketTypes.length]
-      const plz = startPlz + i
-      const promotionValue = promotionValues[i % 3]
-      const promotionsCount = Math.floor(Math.random() * 5) + 1 // 1-5 promotions per market
+  const allMarketsData = useMemo(() => {
+    const generateMarketData = (startPlz: number): MarketData[] => {
+      const marketTypes = ['Billa', 'Billa+', 'Fressnapf', 'Spar', 'Interspar', 'Merkur', 'Hofer', 'Penny', 'Lidl']
+      const promotionValues = [2000, 4000, 6000]
       
-      return {
-        name: `${marketType} ${plz}`,
-        sellInValue: promotionValue * promotionsCount,
-        promotions: promotionsCount
-      }
-    })
-  }
+      return Array.from({ length: 20 }, (_, i) => {
+        const marketType = marketTypes[i % marketTypes.length]
+        const plz = startPlz + i
+        const promotionValue = promotionValues[i % 3]
+        const promotionsCount = Math.floor(Math.random() * 5) + 1 // 1-5 promotions per market
+        
+        return {
+          name: `${marketType} ${plz}`,
+          sellInValue: promotionValue * promotionsCount,
+          promotions: promotionsCount
+        }
+      })
+    }
 
-  const allMarketsData = {
-    'Anna Mueller': generateMarketData(1010),
-    'Thomas Weber': generateMarketData(2010),
-    'Lisa Schmidt': generateMarketData(3010),
-    'Michael Fischer': generateMarketData(4010),
-    'Sarah Wagner': generateMarketData(5010),
-    'David Becker': generateMarketData(6010),
-    'Julia Hoffmann': generateMarketData(7010),
-    'Marco Schulz': generateMarketData(8010),
-    'Nina Richter': generateMarketData(9010)
-  }
+    return {
+      'Anna Mueller': generateMarketData(1010),
+      'Thomas Weber': generateMarketData(2010),
+      'Lisa Schmidt': generateMarketData(3010),
+      'Michael Fischer': generateMarketData(4010),
+      'Sarah Wagner': generateMarketData(5010),
+      'David Becker': generateMarketData(6010),
+      'Julia Hoffmann': generateMarketData(7010),
+      'Marco Schulz': generateMarketData(8010),
+      'Nina Richter': generateMarketData(9010)
+    }
+  }, []) // Empty dependency array means this will only run once
 
   const getFilteredMarketsData = (): MarketData[] => {
     if (selectedRegion === 'Alle Regionen') {
@@ -191,7 +193,7 @@ function App() {
     }
   }
 
-  const getVisitData = () => {
+  const visitData = useMemo(() => {
     // Simulate visit data - generate between 85-95% success rate
     const successRate = 85 + Math.random() * 10 // Random between 85-95%
     
@@ -201,7 +203,7 @@ function App() {
       visitsWithoutSales: Math.round(100 - successRate),
       successPercentage: Math.round(successRate)
     }
-  }
+  }, []) // Only calculate once on mount
 
 
 
@@ -211,7 +213,6 @@ function App() {
   const rawTimeProgress = calculateTimeProgress()
   const timeProgress = rawTimeProgress * 0.8 // Scale to 80% = 100% goal
   const timeDisplayDates = getTimeDisplayDates()
-  const visitData = getVisitData()
 
   const getStatusColor = () => {
     const timePct = rawTimeProgress
@@ -226,6 +227,11 @@ function App() {
   const statusInfo = getStatusColor()
 
   const filteredMarkets = getMarketOptions()
+  
+  const mtdExtraValue = useMemo(() => {
+    // Generate a stable MTD extra value between 30k-50k
+    return 30000 + Math.floor(Math.random() * 20000)
+  }, []) // Only calculate once on mount
 
   // AI Chat functions
   const handleSendMessage = async () => {
@@ -446,7 +452,7 @@ function App() {
                   </div>
                   <div className="mtd-section">
                     <div className="mtd-label">MTD Extra</div>
-                    <div className="mtd-value">36.000€</div>
+                    <div className="mtd-value">{mtdExtraValue.toLocaleString('de-DE')}€</div>
                   </div>
                 </div>
               </div>

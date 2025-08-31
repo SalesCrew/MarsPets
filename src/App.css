@@ -627,6 +627,7 @@
 /* Custom Dropdown Styles */
 .dropdown-container {
   position: relative;
+  z-index: 9999;
 }
 
 .dropdown-trigger {
@@ -669,7 +670,7 @@
   border: 1px solid rgba(0,0,0,0.08);
   border-radius: 6px;
   box-shadow: 0 4px 16px rgba(0,0,0,0.1);
-  z-index: 1001;
+  z-index: 10000;
   max-height: 200px;
   overflow-y: auto;
   margin-top: 4px;
