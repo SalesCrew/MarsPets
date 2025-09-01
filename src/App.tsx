@@ -195,17 +195,63 @@ function App() {
     }
   }
 
-  const visitData = useMemo(() => {
-    // Simulate visit data - generate between 85-95% success rate
-    const successRate = 85 + Math.random() * 10 // Random between 85-95%
+  // Regional visit data - stable per region manager
+  const regionalVisitData = useMemo(() => {
+    const totalVisits = 875
+    const regionVisits: Record<string, { visits: number; successRate: number }> = {}
     
-    return {
-      totalVisits: 100,
-      visitsWithSales: Math.round(successRate),
-      visitsWithoutSales: Math.round(100 - successRate),
-      successPercentage: Math.round(successRate)
+    // Distribute 875 visits among 9 region managers (excluding 'Alle Regionen')
+    const managers = regions.slice(1)
+    let remainingVisits = totalVisits
+    
+    managers.forEach((manager, index) => {
+      const isLast = index === managers.length - 1
+      const visits = isLast ? remainingVisits : Math.floor(Math.random() * 120) + 80 // 80-200 visits per manager
+      const successRate = 85 + Math.random() * 13 // 85-98% success rate
+      
+      regionVisits[manager] = {
+        visits: Math.min(visits, remainingVisits),
+        successRate: Math.round(successRate)
+      }
+      
+      remainingVisits = Math.max(0, remainingVisits - visits)
+    })
+    
+    return regionVisits
+  }, [regions])
+
+  const getFilteredVisitData = () => {
+    if (selectedRegion === 'Alle Regionen') {
+      // Aggregate all regions
+      const totalVisits = Object.values(regionalVisitData).reduce((sum, data) => sum + data.visits, 0)
+      const totalSuccessful = Object.values(regionalVisitData).reduce((sum, data) => sum + Math.round(data.visits * data.successRate / 100), 0)
+      const overallSuccessRate = totalVisits > 0 ? Math.round((totalSuccessful / totalVisits) * 100) : 0
+      
+      return {
+        totalVisits,
+        visitsWithSales: totalSuccessful,
+        visitsWithoutSales: totalVisits - totalSuccessful,
+        successPercentage: overallSuccessRate
+      }
+    } else {
+      // Single region data
+      const regionData = regionalVisitData[selectedRegion]
+      if (!regionData) {
+        return { totalVisits: 0, visitsWithSales: 0, visitsWithoutSales: 0, successPercentage: 0 }
+      }
+      
+      const visitsWithSales = Math.round(regionData.visits * regionData.successRate / 100)
+      
+      return {
+        totalVisits: regionData.visits,
+        visitsWithSales,
+        visitsWithoutSales: regionData.visits - visitsWithSales,
+        successPercentage: regionData.successRate
+      }
     }
-  }, []) // Only calculate once on mount
+  }
+
+  const visitData = getFilteredVisitData()
 
 
 
@@ -560,7 +606,7 @@ function App() {
                   >
                     <div className="pie-center">
                       <div className="pie-percentage">{visitData.successPercentage}%</div>
-                      <div className="pie-subtitle">in 870 Besuchen</div>
+                      <div className="pie-subtitle">in {visitData.totalVisits} Besuchen</div>
                     </div>
                   </div>
                 </div>
