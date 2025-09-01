@@ -254,7 +254,7 @@ function App() {
     return regionVisits
   }, [regions])
 
-  const getFilteredVisitData = () => {
+  const visitData = useMemo(() => {
     if (selectedRegion === 'Alle Regionen') {
       // Aggregate all regions
       const totalVisits = Object.values(regionalVisitData).reduce((sum, data) => sum + data.visits, 0)
@@ -283,9 +283,7 @@ function App() {
         successPercentage: regionData.successRate
       }
     }
-  }
-
-  const visitData = getFilteredVisitData()
+  }, [selectedRegion, regionalVisitData]) // Only depends on actual filter selection
 
 
 
