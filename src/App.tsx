@@ -245,7 +245,7 @@ function App() {
     const elapsedWeeks = Math.max(1, Math.min(totalWeeks, Math.ceil((fakeNow.getTime() - start.getTime()) / weekMs)))
 
     // Create varied weekly additions - some weeks no progress, others more
-    const weeklyAdditions = []
+    const weeklyAdditions: number[] = []
     let currentTotal = 0
     
     for (let i = 0; i < elapsedWeeks; i++) {
@@ -749,10 +749,6 @@ function App() {
                     const volumeData = weeklyCumulativeData.volumeData
                     const maxVolume = Math.max(...volumeData, 1)
                     const volumeBarWidth = width / weeklyCumulativeData.elapsedWeeks * 0.4 // Thinner bars with gaps
-
-                    const actualPath = actual
-                      .map((v, i) => `${i === 0 ? 'M' : 'L'} ${xForWeek(i + 1)} ${yForValue(v)}`)
-                      .join(' ')
 
                     const planPath = plan
                       .map((v, i) => `${i === 0 ? 'M' : 'L'} ${xForWeek(i + 1)} ${yForValue(v)}`)
