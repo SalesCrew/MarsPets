@@ -87,7 +87,7 @@ function App() {
 
   const allMarketsData = useMemo(() => {
     const generateMarketData = (startPlz: number): MarketData[] => {
-      const marketTypes = ['Billa', 'Billa+', 'Fressnapf', 'Spar', 'Interspar', 'Merkur', 'Hofer', 'Penny', 'Lidl']
+      const marketTypes = ['Billa', 'Billa+', 'Fressnapf', 'Spar', 'Interspar', 'Eurospar', 'Hofer', 'Penny', 'Lidl']
       const promotionValues = [2000, 4000, 6000]
       
       return Array.from({ length: 20 }, (_, i) => {
@@ -125,30 +125,64 @@ function App() {
     }
   }
 
-  const getMarketOptions = () => {
+  const getClusteredMarketOptions = () => {
     const marketsData = getFilteredMarketsData()
-    return ['Alle Märkte', ...marketsData.map(m => m.name)]
+    
+    // Define market clusters
+    const clusters = new Set<string>()
+    
+    marketsData.forEach(market => {
+      const marketName = market.name
+      if (marketName.includes('Billa+')) {
+        clusters.add('Billa+')
+      } else if (marketName.includes('Billa')) {
+        clusters.add('Billa')
+      } else if (marketName.includes('Eurospar') || marketName.includes('Interspar') || marketName.includes('Spar')) {
+        clusters.add('Spar/Eurospar')
+      } else if (marketName.includes('Fressnapf') || marketName.includes('Hofer') || marketName.includes('Penny')) {
+        clusters.add('DIY')
+      } else {
+        clusters.add('Sonstige')
+      }
+    })
+    
+    return ['Alle Märkte', ...Array.from(clusters).sort()]
+  }
+
+  const getClusterFilteredData = (marketsData: MarketData[]) => {
+    if (selectedMarket === 'Alle Märkte') {
+      return marketsData
+    }
+    
+    // Handle cluster filtering
+    return marketsData.filter(market => {
+      const marketName = market.name
+      switch (selectedMarket) {
+        case 'Billa+':
+          return marketName.includes('Billa+')
+        case 'Billa':
+          return marketName.includes('Billa') && !marketName.includes('Billa+')
+        case 'Spar/Eurospar':
+          return marketName.includes('Eurospar') || marketName.includes('Interspar') || marketName.includes('Spar')
+        case 'DIY':
+          return marketName.includes('Fressnapf') || marketName.includes('Hofer') || marketName.includes('Penny')
+        case 'Sonstige':
+          return marketName.includes('Lidl')
+        default:
+          return market.name === selectedMarket
+      }
+    })
   }
 
   const calculateTotalSellIn = () => {
     const marketsData = getFilteredMarketsData()
-    let filteredData = marketsData
-
-    if (selectedMarket !== 'Alle Märkte') {
-      filteredData = marketsData.filter(market => market.name === selectedMarket)
-    }
-
+    const filteredData = getClusterFilteredData(marketsData)
     return filteredData.reduce((total, market) => total + market.sellInValue, 0)
   }
 
   const calculateGoalValue = () => {
     const marketsData = getFilteredMarketsData()
-    let filteredData = marketsData
-
-    if (selectedMarket !== 'Alle Märkte') {
-      filteredData = marketsData.filter(market => market.name === selectedMarket)
-    }
-
+    const filteredData = getClusterFilteredData(marketsData)
     return filteredData.length * 20000 // 20k per market
   }
 
@@ -274,7 +308,7 @@ function App() {
 
   const statusInfo = getStatusColor()
 
-  const filteredMarkets = getMarketOptions()
+  const filteredMarkets = getClusteredMarketOptions()
   
   const mtdExtraValue = useMemo(() => {
     // Generate a stable MTD extra value between 30k-50k
