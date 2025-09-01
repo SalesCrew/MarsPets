@@ -264,7 +264,7 @@ function App() {
     })
     
     return regionVisits
-  }, [regions])
+  }, []) // Static data, no dependencies needed
 
   const visitData = useMemo(() => {
     if (selectedRegion === 'Alle Regionen') {
