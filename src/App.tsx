@@ -87,7 +87,7 @@ function App() {
 
   const allMarketsData = useMemo(() => {
     const generateMarketData = (startPlz: number): MarketData[] => {
-      const marketTypes = ['Billa', 'Billa+', 'Fressnapf', 'Spar', 'Interspar', 'Eurospar', 'Hofer', 'Penny', 'Lidl']
+      const marketTypes = ['Billa', 'Billa+', 'Fressnapf', 'Spar', 'Interspar', 'Eurospar', 'Hofer', 'Penny', 'Lidl', 'DIY']
       const promotionValues = [2000, 4000, 6000]
       
       return Array.from({ length: 20 }, (_, i) => {
@@ -139,8 +139,14 @@ function App() {
         clusters.add('Billa')
       } else if (marketName.includes('Eurospar') || marketName.includes('Interspar') || marketName.includes('Spar')) {
         clusters.add('Spar/Eurospar')
-      } else if (marketName.includes('Fressnapf') || marketName.includes('Hofer') || marketName.includes('Penny')) {
+      } else if (marketName.includes('Fressnapf')) {
+        clusters.add('Fressnapf')
+      } else if (marketName.includes('Hofer')) {
+        clusters.add('Hofer')
+      } else if (marketName.includes('DIY')) {
         clusters.add('DIY')
+      } else if (marketName.includes('Penny')) {
+        clusters.add('Penny')
       } else {
         clusters.add('Sonstige')
       }
@@ -164,8 +170,14 @@ function App() {
           return marketName.includes('Billa') && !marketName.includes('Billa+')
         case 'Spar/Eurospar':
           return marketName.includes('Eurospar') || marketName.includes('Interspar') || marketName.includes('Spar')
+        case 'Fressnapf':
+          return marketName.includes('Fressnapf')
+        case 'Hofer':
+          return marketName.includes('Hofer')
         case 'DIY':
-          return marketName.includes('Fressnapf') || marketName.includes('Hofer') || marketName.includes('Penny')
+          return marketName.includes('DIY')
+        case 'Penny':
+          return marketName.includes('Penny')
         case 'Sonstige':
           return marketName.includes('Lidl')
         default:
