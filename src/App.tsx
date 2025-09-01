@@ -55,6 +55,8 @@ function App() {
   
   // Grid card filters - one state per card
   const [gridFilters, setGridFilters] = useState<Record<string, 'MTD' | 'Q1' | 'Q2' | 'Q3' | 'Q4' | 'All'>>({})
+  const [showSellInModal, setShowSellInModal] = useState(false)
+  const [chartHover, setChartHover] = useState<{ x: number; weekIndex: number; weeklyValue: number; cumulativeValue: number; volumeCount: number } | null>(null)
 
   const handleRegionChange = (region: string) => {
     setSelectedRegion(region)
@@ -232,6 +234,70 @@ function App() {
     // Generate a stable MTD extra value between 30k-50k
     return 30000 + Math.floor(Math.random() * 20000)
   }, []) // Only calculate once on mount
+
+  // Build cumulative weekly (KW) data for line chart with variety
+  const weeklyCumulativeData = useMemo(() => {
+    const start = new Date(2025, 7, 31) // 31.08.2025
+    const end = new Date(2026, 7, 31)   // 31.08.2026
+    const weekMs = 7 * 24 * 60 * 60 * 1000
+    const fakeNow = new Date(2026, 2, 15)
+    const totalWeeks = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / weekMs))
+    const elapsedWeeks = Math.max(1, Math.min(totalWeeks, Math.ceil((fakeNow.getTime() - start.getTime()) / weekMs)))
+
+    // Create varied weekly additions - some weeks no progress, others more
+    const weeklyAdditions = []
+    let currentTotal = 0
+    
+    for (let i = 0; i < elapsedWeeks; i++) {
+      const weekType = Math.random()
+      if (weekType < 0.2) {
+        // 20% chance: no progress this week
+        weeklyAdditions.push(0)
+      } else if (weekType < 0.6) {
+        // 40% chance: normal progress
+        weeklyAdditions.push(Math.round(totalSellIn * 0.8 / elapsedWeeks))
+      } else {
+        // 40% chance: high progress week
+        weeklyAdditions.push(Math.round(totalSellIn * 1.5 / elapsedWeeks))
+      }
+    }
+    
+    // Adjust to reach target total
+    const actualTotal = weeklyAdditions.reduce((sum, val) => sum + val, 0)
+    const adjustment = (totalSellIn - actualTotal) / elapsedWeeks
+    weeklyAdditions.forEach((_, i) => {
+      if (weeklyAdditions[i] > 0) weeklyAdditions[i] += Math.round(adjustment)
+    })
+
+    // Build cumulative points
+    const points: number[] = []
+    for (let i = 0; i < elapsedWeeks; i++) {
+      currentTotal += weeklyAdditions[i]
+      points.push(Math.max(0, currentTotal))
+    }
+    
+    // Generate volume data (number of sell-ins per week)
+    const volumeData = weeklyAdditions.map(addition => {
+      if (addition === 0) return 0
+      // Simulate number of sell-ins: roughly 1 sell-in per 5000€
+      return Math.max(1, Math.round(addition / 5000))
+    })
+    
+    return { points, totalWeeks, elapsedWeeks, weeklyAdditions, volumeData }
+  }, [totalSellIn])
+
+  const plannedLineData = useMemo(() => {
+    // Straight plan line from 0 to goal across all weeks
+    const start = new Date(2025, 7, 31)
+    const end = new Date(2026, 7, 31)
+    const weekMs = 7 * 24 * 60 * 60 * 1000
+    const totalWeeks = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / weekMs))
+    const values: number[] = []
+    for (let i = 1; i <= totalWeeks; i++) {
+      values.push(Math.round((goalValue * i) / totalWeeks))
+    }
+    return { values, totalWeeks }
+  }, [goalValue])
 
   // AI Chat functions
   const handleSendMessage = async () => {
@@ -470,7 +536,7 @@ function App() {
                     <span className="kpi__end"></span>
                   </div>
                 </div>
-                <div className="kpi">
+                <div className="kpi kpi--clickable" onClick={() => setShowSellInModal(true)}>
                   <div className="kpi__title">Sell in Wert</div>
                   <div className="kpi__bar-wrapper">
                     <div className="kpi__bar kpi__bar--with-target">
@@ -626,6 +692,282 @@ function App() {
         </div>
       </main>
       {showCalendar && <Calendar onClose={() => setShowCalendar(false)} onSelect={handleDateRangeSelect} />}
+
+      {showSellInModal && (
+        <div className="modal-overlay" onClick={() => setShowSellInModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Sell in Wert · Verlauf nach KW</h3>
+              <button className="modal-close" onClick={() => setShowSellInModal(false)} aria-label="Close">×</button>
+            </div>
+            <div className="modal-body">
+              <div className="chart-container">
+                <svg 
+                  className="chart-svg" 
+                  viewBox="0 0 800 400" 
+                  preserveAspectRatio="xMidYMid meet"
+                  onMouseMove={(e) => {
+                    const rect = e.currentTarget.getBoundingClientRect()
+                    const x = ((e.clientX - rect.left) / rect.width) * 800
+                    const y = ((e.clientY - rect.top) / rect.height) * 400
+                    
+                    const padding = { left: 75, right: 40, top: 20, bottom: 60 }
+                    const chartWidth = 800 - padding.left - padding.right
+                    const chartHeight = 400 - padding.top - padding.bottom
+                    
+                    if (x >= padding.left && x <= padding.left + chartWidth && y >= padding.top && y <= padding.top + chartHeight) {
+                      const relativeX = x - padding.left
+                      const weekIndex = Math.round((relativeX / chartWidth) * (weeklyCumulativeData.elapsedWeeks - 1))
+                      
+                      if (weekIndex >= 0 && weekIndex < weeklyCumulativeData.elapsedWeeks) {
+                        const cumulativeValue = weeklyCumulativeData.points[weekIndex]
+                        const previousValue = weekIndex > 0 ? weeklyCumulativeData.points[weekIndex - 1] : 0
+                        const weeklyDifference = cumulativeValue - previousValue
+                        const volumeCount = weeklyCumulativeData.volumeData[weekIndex]
+                        setChartHover({ x, weekIndex, weeklyValue: weeklyDifference, cumulativeValue, volumeCount })
+                      }
+                    }
+                  }}
+                  onMouseLeave={() => setChartHover(null)}
+                >
+                  {(() => {
+                    const padding = { left: 75, right: 40, top: 20, bottom: 60 }
+                    const width = 800 - padding.left - padding.right
+                    const height = 400 - padding.top - padding.bottom
+                    const volumeHeight = 60 // Volume bars take bottom 60px of chart
+                    const lineChartHeight = height - volumeHeight
+
+                    const actual = weeklyCumulativeData.points
+                    const totalWeeks = plannedLineData.totalWeeks
+                    const plan = plannedLineData.values
+                    const maxY = Math.max(goalValue, actual[actual.length - 1] || 0) * 1.05
+
+                    const xForWeek = (w: number) => padding.left + ((w - 1) / (totalWeeks - 1)) * width
+                    const yForValue = (v: number) => padding.top + lineChartHeight - (v / maxY) * lineChartHeight
+                    
+                    // Volume chart calculations
+                    const volumeData = weeklyCumulativeData.volumeData
+                    const maxVolume = Math.max(...volumeData, 1)
+                    const volumeBarWidth = width / weeklyCumulativeData.elapsedWeeks * 0.4 // Thinner bars with gaps
+
+                    const actualPath = actual
+                      .map((v, i) => `${i === 0 ? 'M' : 'L'} ${xForWeek(i + 1)} ${yForValue(v)}`)
+                      .join(' ')
+
+                    const planPath = plan
+                      .map((v, i) => `${i === 0 ? 'M' : 'L'} ${xForWeek(i + 1)} ${yForValue(v)}`)
+                      .join(' ')
+
+                    // Y-axis values
+                    const yTicks = [0, maxY * 0.25, maxY * 0.5, maxY * 0.75, maxY]
+                    // X-axis ticks every 8 weeks
+                    const xTicks = Array.from({ length: Math.ceil(totalWeeks / 8) }, (_, i) => (i + 1) * 8).filter(w => w <= totalWeeks)
+
+                    return (
+                      <g>
+                        {/* Chart background */}
+                        <rect x={padding.left} y={padding.top} width={width} height={height} fill="#fafbfc" stroke="#f1f5f9" strokeWidth="1" rx="6"/>
+                        
+                        {/* Horizontal grid lines */}
+                        {yTicks.slice(1, -1).map((tick, i) => (
+                          <line key={`hy-${i}`} x1={padding.left} y1={yForValue(tick)} x2={padding.left + width} y2={yForValue(tick)} stroke="#f8fafc" strokeWidth="1" />
+                        ))}
+                        
+                        {/* Vertical grid lines */}
+                        {xTicks.map((week) => (
+                          <line key={`vx-${week}`} x1={xForWeek(week)} y1={padding.top} x2={xForWeek(week)} y2={padding.top + height} stroke="#f8fafc" strokeWidth="1" />
+                        ))}
+
+                        {/* Chart axes */}
+                        <line x1={padding.left} y1={padding.top} x2={padding.left} y2={padding.top + height} stroke="#e2e8f0" strokeWidth="2" />
+                        <line x1={padding.left} y1={padding.top + height} x2={padding.left + width} y2={padding.top + height} stroke="#e2e8f0" strokeWidth="2" />
+
+                        {/* Y-axis labels */}
+                        {yTicks.map((tick, i) => (
+                          <text key={`yl-${i}`} x={padding.left - 12} y={yForValue(tick) + 4} fill="#64748b" fontSize="11" textAnchor="end" fontWeight="500">
+                            {tick === 0 ? '0€' : `${Math.round(tick / 1000)}k€`}
+                          </text>
+                        ))}
+
+                        {/* X-axis labels */}
+                        {xTicks.map((week) => (
+                          <text key={`xl-${week}`} x={xForWeek(week)} y={padding.top + height + 20} fill="#64748b" fontSize="11" textAnchor="middle" fontWeight="500">
+                            KW{week}
+                          </text>
+                        ))}
+
+                        {/* Volume bars */}
+                        {volumeData.map((volume, i) => {
+                          const barHeight = volume > 0 ? (volume / maxVolume) * volumeHeight * 0.7 : 0
+                          const barX = xForWeek(i + 1) - volumeBarWidth / 2 // Center bar exactly below data point
+                          const barY = padding.top + height - barHeight
+                          
+                          return (
+                            <rect 
+                              key={`vol-${i}`}
+                              x={barX}
+                              y={barY}
+                              width={volumeBarWidth}
+                              height={barHeight}
+                              fill="#9ca3af"
+                              opacity="0.6"
+                              rx="1"
+                            />
+                          )
+                        })}
+
+                        {/* Plan line (diagonal target) */}
+                        <path d={planPath} fill="none" stroke="#94a3b8" strokeWidth="1.5" strokeDasharray="6 4" opacity="0.7" />
+                        
+                        <defs>
+                          <linearGradient id="greenGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" stopColor="#059669" />
+                            <stop offset="100%" stopColor="#10b981" />
+                          </linearGradient>
+                          <linearGradient id="redGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" stopColor="#dc2626" />
+                            <stop offset="100%" stopColor="#ef4444" />
+                          </linearGradient>
+                        </defs>
+
+                        {/* Fill areas between actual and plan lines */}
+                        {actual.map((v, i) => {
+                          if (i === 0) return null
+                          const prevActual = actual[i - 1]
+                          const prevPlan = plan[i - 1]
+                          const currentPlan = plan[i]
+                          
+                          const isAbove = v > currentPlan
+                          const wasPrevAbove = prevActual > prevPlan
+                          
+                          if (isAbove === wasPrevAbove) {
+                            // Same side, create fill area
+                            const fillPath = [
+                              `M ${xForWeek(i)} ${yForValue(prevActual)}`,
+                              `L ${xForWeek(i + 1)} ${yForValue(v)}`,
+                              `L ${xForWeek(i + 1)} ${yForValue(currentPlan)}`,
+                              `L ${xForWeek(i)} ${yForValue(prevPlan)}`,
+                              'Z'
+                            ].join(' ')
+                            
+                            return (
+                              <path 
+                                key={`fill-${i}`} 
+                                d={fillPath} 
+                                fill={isAbove ? '#10b981' : '#ef4444'} 
+                                opacity="0.1"
+                              />
+                            )
+                          }
+                          return null
+                        })}
+
+                        {/* Actual line segments with dynamic colors */}
+                        {actual.map((v, i) => {
+                          if (i === 0) return null
+                          const prevV = actual[i - 1]
+                          const currentPlan = plan[i]
+                          const isAbove = v > currentPlan
+                          
+                          return (
+                            <path 
+                              key={`line-${i}`}
+                              d={`M ${xForWeek(i)} ${yForValue(prevV)} L ${xForWeek(i + 1)} ${yForValue(v)}`}
+                              fill="none" 
+                              stroke={isAbove ? '#10b981' : '#ef4444'} 
+                              strokeWidth="2.5" 
+                            />
+                          )
+                        })}
+
+                        {/* Data points with dynamic colors */}
+                        {actual.map((v, i) => {
+                          const currentPlan = plan[i]
+                          const isAbove = v > currentPlan
+                          
+                          return (
+                            <circle 
+                              key={`p-${i}`} 
+                              cx={xForWeek(i + 1)} 
+                              cy={yForValue(v)} 
+                              r="2.5" 
+                              fill="#ffffff" 
+                              stroke={isAbove ? '#10b981' : '#ef4444'} 
+                              strokeWidth="1.5" 
+                            />
+                          )
+                        })}
+
+                        {/* Hover line and tooltip */}
+                        {chartHover && (
+                          <>
+                            {/* Vertical hover line */}
+                            <line 
+                              x1={chartHover.x} 
+                              y1={padding.top} 
+                              x2={chartHover.x} 
+                              y2={padding.top + height} 
+                              stroke="#64748b" 
+                              strokeWidth="1" 
+                              strokeDasharray="3 3"
+                              opacity="0.7"
+                            />
+                            
+                            {/* Tooltip */}
+                            <g>
+                              <rect 
+                                x={chartHover.x + 10} 
+                                y={padding.top + 10} 
+                                width="140" 
+                                height="80" 
+                                fill="#ffffff" 
+                                stroke="#e2e8f0" 
+                                strokeWidth="1" 
+                                rx="6"
+                                filter="url(#tooltipShadow)"
+                              />
+                              
+                              <defs>
+                                <filter id="tooltipShadow">
+                                  <feDropShadow dx="0" dy="2" stdDeviation="4" floodColor="#000000" floodOpacity="0.1"/>
+                                </filter>
+                              </defs>
+                              
+                              <text x={chartHover.x + 18} y={padding.top + 28} fill="#374151" fontSize="11" fontWeight="600">
+                                KW {chartHover.weekIndex + 1}
+                              </text>
+                              
+                              <text x={chartHover.x + 18} y={padding.top + 44} fill="#64748b" fontSize="10">
+                                Gesamt: {chartHover.cumulativeValue.toLocaleString('de-DE')}€
+                              </text>
+                              
+                              <text x={chartHover.x + 18} y={padding.top + 58} fill={chartHover.weeklyValue === 0 ? '#64748b' : chartHover.weeklyValue > 0 ? '#10b981' : '#ef4444'} fontSize="10" fontWeight="500">
+                                {chartHover.weeklyValue === 0 ? '±0€ zur Vorwoche' : (chartHover.weeklyValue > 0 ? '+' : '') + chartHover.weeklyValue.toLocaleString('de-DE') + '€ zur Vorwoche'}
+                              </text>
+                              
+                              <text x={chartHover.x + 18} y={padding.top + 72} fill="#64748b" fontSize="10">
+                                Volumen: {chartHover.volumeCount} Sell-ins
+                              </text>
+                            </g>
+                          </>
+                        )}
+
+                        {/* Axis titles */}
+                        <text x={padding.left + width / 2} y={padding.top + height + 45} fill="#475569" fontSize="12" textAnchor="middle" fontWeight="600">
+                          Kalenderwochen (KW)
+                        </text>
+                        <text x={padding.left - 50} y={padding.top + height / 2} fill="#475569" fontSize="12" textAnchor="middle" fontWeight="600" transform={`rotate(-90 ${padding.left - 50} ${padding.top + height / 2})`}>
+                          Sell-in Wert
+                        </text>
+                      </g>
+                    )
+                  })()}
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       </div>
   )
 }
