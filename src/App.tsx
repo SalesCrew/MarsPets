@@ -266,7 +266,37 @@ function App() {
     return regionVisits
   }, []) // Static data, no dependencies needed
 
+  // Market cluster visit data - stable per market cluster
+  const marketClusterVisitData = useMemo(() => {
+    const clusterVisits: Record<string, { visits: number; successRate: number }> = {
+      'Billa': { visits: 145, successRate: 89 },
+      'Billa+': { visits: 98, successRate: 94 },
+      'Spar/Eurospar': { visits: 167, successRate: 87 },
+      'Fressnapf': { visits: 112, successRate: 92 },
+      'Hofer': { visits: 89, successRate: 85 },
+      'DIY': { visits: 76, successRate: 88 },
+      'Penny': { visits: 93, successRate: 86 },
+      'Sonstige': { visits: 95, successRate: 90 }
+    }
+    return clusterVisits
+  }, [])
+
   const visitData = useMemo(() => {
+    // If market is filtered, use market cluster data
+    if (selectedMarket !== 'Alle Märkte') {
+      const clusterData = marketClusterVisitData[selectedMarket]
+      if (clusterData) {
+        const visitsWithSales = Math.round(clusterData.visits * clusterData.successRate / 100)
+        return {
+          totalVisits: clusterData.visits,
+          visitsWithSales,
+          visitsWithoutSales: clusterData.visits - visitsWithSales,
+          successPercentage: clusterData.successRate
+        }
+      }
+    }
+    
+    // Otherwise use region data
     if (selectedRegion === 'Alle Regionen') {
       // Aggregate all regions
       const totalVisits = Object.values(regionalVisitData).reduce((sum, data) => sum + data.visits, 0)
@@ -295,7 +325,7 @@ function App() {
         successPercentage: regionData.successRate
       }
     }
-  }, [selectedRegion, regionalVisitData]) // Only depends on actual filter selection
+  }, [selectedRegion, selectedMarket, regionalVisitData, marketClusterVisitData]) // Depends on both filter selections
 
 
 
@@ -312,8 +342,8 @@ function App() {
     const difference = timePct - sellPct
 
     if (difference <= 5) return { color: '#10b981', status: 'On Track' } // Green - on track
-    if (difference <= 15) return { color: '#f59e0b', status: 'Im Zeitplan' } // Orange - behind schedule
-    return { color: '#ef4444', status: 'Hinten nach' } // Red - significantly behind
+    if (difference <= 15) return { color: '#f59e0b', status: 'Leicht hinten' } // Orange - slightly behind
+    return { color: '#ef4444', status: 'Hinten' } // Red - behind
   }
 
   const statusInfo = getStatusColor()
