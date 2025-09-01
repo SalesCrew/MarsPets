@@ -396,11 +396,16 @@ function App() {
       points.push(Math.max(0, currentTotal))
     }
     
-    // Generate volume data (number of sell-ins per week)
-    const volumeData = weeklyAdditions.map(addition => {
+    // Generate volume data (number of sell-ins per week) with variety
+    const volumeData = weeklyAdditions.map((addition, index) => {
       if (addition === 0) return 0
-      // Simulate number of sell-ins: roughly 1 sell-in per 5000€
-      return Math.max(1, Math.round(addition / 5000))
+      
+      // Add variety to volume counts
+      const baseVolume = Math.max(1, Math.round(addition / 5000))
+      const varietyFactor = 0.5 + Math.sin(index * 0.7) * 0.4 + Math.cos(index * 1.1) * 0.3 // Creates waves of variety
+      const adjustedVolume = Math.round(baseVolume * (0.7 + varietyFactor))
+      
+      return Math.max(1, adjustedVolume)
     })
     
     return { points, totalWeeks, elapsedWeeks, weeklyAdditions, volumeData }
