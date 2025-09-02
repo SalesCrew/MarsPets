@@ -1678,20 +1678,86 @@
   display: block;
 }
 
-.message--status .message-content {
-  background: rgba(255, 255, 255, 0.8);
+.message--checklist .message-content {
+  background: rgba(255, 255, 255, 0.9);
   border: 1px solid rgba(0, 0, 159, 0.1);
+  padding: 16px;
 }
 
-.status-text {
+.ai-checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.checklist-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 0;
+}
+
+.checklist-icon {
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+}
+
+.checklist-item.pending .checklist-icon {
+  background: rgba(156, 163, 175, 0.2);
+}
+
+.checklist-item.active .checklist-icon {
+  background: rgba(0, 0, 159, 0.1);
+}
+
+.checklist-item.completed .checklist-icon {
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+}
+
+.pending-dot {
+  width: 6px;
+  height: 6px;
+  background: #9ca3af;
+  border-radius: 50%;
+}
+
+.loading-spinner {
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(0, 0, 159, 0.2);
+  border-top: 2px solid #00009f;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.checklist-text {
+  font-size: 12px;
+  font-weight: 500;
+  transition: color 0.3s ease;
+}
+
+.checklist-item.pending .checklist-text {
+  color: #9ca3af;
+}
+
+.checklist-item.active .checklist-text {
   color: #00009f;
-  font-style: italic;
-  animation: pulse 1.5s ease-in-out infinite;
+  font-weight: 600;
 }
 
-@keyframes pulse {
-  0%, 100% { opacity: 0.6; }
-  50% { opacity: 1; }
+.checklist-item.completed .checklist-text {
+  color: #10b981;
 }
 
 .chat-input-container {

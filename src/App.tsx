@@ -51,6 +51,8 @@ function App() {
   const [chatInput, setChatInput] = useState('')
   const [isTyping, setIsTyping] = useState(false)
   const [aiStatus, setAiStatus] = useState('')
+  const [aiSteps, setAiSteps] = useState<{ text: string; status: 'pending' | 'active' | 'completed' }[]>([])
+  const [currentStepIndex, setCurrentStepIndex] = useState(-1)
   const chatMessagesRef = useRef<HTMLDivElement>(null)
   
   // Grid card filters - one state per card
@@ -439,38 +441,53 @@ function App() {
     setChatInput('')
     setIsTyping(true)
     
-    // Simulate AI processing with status updates
-    const statuses = [
-      'Daten werden gesammelt...',
-      'Sell-in Werte werden berechnet...',
-      'Regionale Performance wird analysiert...',
-      'Marktdaten werden ausgewertet...',
-      'Antwort wird vorbereitet...'
+    // Initialize AI processing steps
+    const steps = [
+      { text: 'Daten sammeln', status: 'pending' as const },
+      { text: 'Sell-in Werte berechnen', status: 'pending' as const },
+      { text: 'Performance analysieren', status: 'pending' as const },
+      { text: 'Antwort generieren', status: 'pending' as const }
     ]
     
-    let statusIndex = 0
-    setAiStatus(statuses[0])
+    setAiSteps(steps)
+    setCurrentStepIndex(0)
     
-    const statusInterval = setInterval(() => {
-      statusIndex++
-      if (statusIndex < statuses.length) {
-        setAiStatus(statuses[statusIndex])
+    // Process each step with 3-second intervals
+    const processSteps = async () => {
+      for (let i = 0; i < steps.length; i++) {
+        // Mark current step as active
+        setAiSteps(prev => prev.map((step, index) => ({
+          ...step,
+          status: index === i ? 'active' : index < i ? 'completed' : 'pending'
+        })))
+        setCurrentStepIndex(i)
+        
+        // Wait 3 seconds for this step
+        await new Promise(resolve => setTimeout(resolve, 3000))
+        
+        // Mark current step as completed
+        setAiSteps(prev => prev.map((step, index) => ({
+          ...step,
+          status: index <= i ? 'completed' : 'pending'
+        })))
       }
-    }, 2000)
+      
+      // Generate final response
+      setTimeout(() => {
+        const aiResponse = {
+          id: Date.now() + 1,
+          text: generateAIResponse(chatInput),
+          isUser: false,
+          timestamp: new Date()
+        }
+        setChatMessages(prev => [...prev, aiResponse])
+        setIsTyping(false)
+        setAiSteps([])
+        setCurrentStepIndex(-1)
+      }, 500)
+    }
     
-    // Simulate AI response delay
-    setTimeout(() => {
-      clearInterval(statusInterval)
-      const aiResponse = {
-        id: Date.now() + 1,
-        text: generateAIResponse(chatInput),
-        isUser: false,
-        timestamp: new Date()
-      }
-      setChatMessages(prev => [...prev, aiResponse])
-      setIsTyping(false)
-      setAiStatus('')
-    }, 10000)
+    processSteps()
   }
 
   const generateAIResponse = (input: string): string => {
@@ -573,10 +590,29 @@ function App() {
                   </div>
                 ))}
                 
-                {isTyping && aiStatus && (
-                  <div className="message message--ai message--status">
+                {isTyping && aiSteps.length > 0 && (
+                  <div className="message message--ai message--checklist">
                     <div className="message-content">
-                      <p className="status-text">{aiStatus}</p>
+                      <div className="ai-checklist">
+                        {aiSteps.map((step, index) => (
+                          <div key={index} className={`checklist-item ${step.status}`}>
+                            <div className="checklist-icon">
+                              {step.status === 'completed' && (
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <path d="M20 6L9 17l-5-5" />
+                                </svg>
+                              )}
+                              {step.status === 'active' && (
+                                <div className="loading-spinner"></div>
+                              )}
+                              {step.status === 'pending' && (
+                                <div className="pending-dot"></div>
+                              )}
+                            </div>
+                            <span className="checklist-text">{step.text}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 )}
