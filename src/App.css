@@ -769,23 +769,42 @@
   align-items: center;
   justify-content: center;
   z-index: 1;
+  pointer-events: auto; /* enable clicks inside despite parent disabling */
 }
 
 .pie-chart-container {
   position: relative;
   width: 234px;
   height: 234px;
+  cursor: pointer;
 }
 
-.pie-chart {
+/* old .pie-chart removed in favor of svg donut */
+
+.donut-svg {
   width: 234px;
   height: 234px;
-  border-radius: 50%;
+  display: block;
   position: relative;
-  box-shadow: 
-    0 6px 24px rgba(0,0,0,0.15), 
-    0 3px 12px rgba(0,0,0,0.1),
-    inset -2px 2px 8px rgba(0,0,0,0.08);
+  z-index: 1;
+  filter: drop-shadow(0 6px 16px rgba(0,0,0,0.18)) drop-shadow(0 2px 6px rgba(0,0,0,0.12));
+}
+
+.donut-center-bg {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 178px;
+  height: 178px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 1px 1px, rgba(0, 0, 0, 0.04) 1px, transparent 0),
+    #FAFBFD;
+  background-size: 12px 12px, 100% 100%;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.12); /* more visible, still non-inset to avoid inner ring */
+  z-index: 0;
+  pointer-events: none;
 }
 
 .pie-hover-area {
@@ -804,8 +823,8 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 138px;
-  height: 138px;
+  width: 186px;
+  height: 186px;
   background: 
     radial-gradient(circle at 1px 1px, rgba(0, 0, 0, 0.04) 1px, transparent 0),
     #FAFBFD;

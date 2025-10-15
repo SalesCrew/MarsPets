@@ -711,17 +711,63 @@ function App() {
                 </div>
               </div>
               <div className="chart-area">
-                <div className="pie-chart-container">
-                  <div 
-                    className="pie-chart" 
-                    style={{
-                      background: `conic-gradient(#10b981 0% ${visitData.successPercentage}%, #d1d5db ${visitData.successPercentage}% 100%)`
-                    } as React.CSSProperties}
-                  >
-                    <div className="pie-center">
-                      <div className="pie-percentage">{visitData.successPercentage}%</div>
-                      <div className="pie-subtitle">in {visitData.totalVisits} Besuchen</div>
-                    </div>
+                <div className="pie-chart-container" onClick={() => setShowSellInModal(true)}>
+                  {(() => {
+                    const size = 234
+                    const thickness = 28
+                    const cx = size / 2
+                    const cy = size / 2
+                    const rOuter = cx - 4
+                    const rInner = rOuter - thickness
+                    const gapDeg = 2.4
+                    const successPct = Math.max(0, Math.min(100, visitData.successPercentage))
+                    const greenEnd = (360 * successPct) / 100
+
+                    const toRad = (deg: number) => (Math.PI / 180) * deg
+                    const polar = (r: number, ang: number) => ({ x: cx + r * Math.cos(toRad(ang)), y: cy + r * Math.sin(toRad(ang)) })
+
+                    const donutPath = (start: number, end: number) => {
+                      const s = start + gapDeg / 2
+                      const e = end - gapDeg / 2
+                      const large = e - s > 180 ? 1 : 0
+                      const p1 = polar(rOuter, s)
+                      const p2 = polar(rOuter, e)
+                      const p3 = polar(rInner, e)
+                      const p4 = polar(rInner, s)
+                      return `M ${p1.x} ${p1.y} A ${rOuter} ${rOuter} 0 ${large} 1 ${p2.x} ${p2.y} L ${p3.x} ${p3.y} A ${rInner} ${rInner} 0 ${large} 0 ${p4.x} ${p4.y} Z`
+                    }
+
+                    const rimPath = (radius: number, start: number, end: number) => {
+                      const s = start + gapDeg / 2
+                      const e = end - gapDeg / 2
+                      const large = e - s > 180 ? 1 : 0
+                      const p1 = polar(radius, s)
+                      const p2 = polar(radius, e)
+                      return `M ${p1.x} ${p1.y} A ${radius} ${radius} 0 ${large} 1 ${p2.x} ${p2.y}`
+                    }
+
+                    const rotate = `rotate(-90 ${cx} ${cy})`
+
+                    return (
+                      <svg className="donut-svg" width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+                        <g transform={rotate}>
+                          {/* Filled segments with full border for inner/outer edges and seams */}
+                          <path d={donutPath(0, greenEnd)} fill="rgba(16,185,129,0.5)" stroke="rgba(16,185,129,0.8)" strokeWidth={2} />
+                          <path d={donutPath(greenEnd, 360)} fill="rgba(209,213,219,0.5)" stroke="rgba(209,213,219,0.8)" strokeWidth={2} />
+
+                          <path d={rimPath(rOuter, 0, greenEnd)} stroke="rgba(16,185,129,0.8)" strokeWidth={2} fill="none" />
+                          <path d={rimPath(rOuter, greenEnd, 360)} stroke="rgba(209,213,219,0.8)" strokeWidth={2} fill="none" />
+
+                          <path d={rimPath(rInner, 0, greenEnd)} stroke="rgba(16,185,129,0.8)" strokeWidth={2} fill="none" />
+                          <path d={rimPath(rInner, greenEnd, 360)} stroke="rgba(209,213,219,0.8)" strokeWidth={2} fill="none" />
+                        </g>
+                      </svg>
+                    )
+                  })()}
+                  <div className="donut-center-bg"></div>
+                  <div className="pie-center">
+                    <div className="pie-percentage">{visitData.successPercentage}%</div>
+                    <div className="pie-subtitle">in {visitData.totalVisits} Besuchen</div>
                   </div>
                 </div>
               </div>
@@ -868,24 +914,29 @@ function App() {
                   preserveAspectRatio="xMidYMid meet"
                   onMouseMove={(e) => {
                     const rect = e.currentTarget.getBoundingClientRect()
-                    const x = ((e.clientX - rect.left) / rect.width) * 800
-                    const y = ((e.clientY - rect.top) / rect.height) * 400
-                    
+                    const mouseX = ((e.clientX - rect.left) / rect.width) * 800
+                    const mouseY = ((e.clientY - rect.top) / rect.height) * 400
+
                     const padding = { left: 75, right: 40, top: 20, bottom: 60 }
                     const chartWidth = 800 - padding.left - padding.right
                     const chartHeight = 400 - padding.top - padding.bottom
-                    
-                    if (x >= padding.left && x <= padding.left + chartWidth && y >= padding.top && y <= padding.top + chartHeight) {
-                      const relativeX = x - padding.left
-                      const weekIndex = Math.round((relativeX / chartWidth) * (weeklyCumulativeData.elapsedWeeks - 1))
-                      
-                      if (weekIndex >= 0 && weekIndex < weeklyCumulativeData.elapsedWeeks) {
-                        const cumulativeValue = weeklyCumulativeData.points[weekIndex]
-                        const previousValue = weekIndex > 0 ? weeklyCumulativeData.points[weekIndex - 1] : 0
-                        const weeklyDifference = cumulativeValue - previousValue
-                        const volumeCount = weeklyCumulativeData.volumeData[weekIndex]
-                        setChartHover({ x, weekIndex, weeklyValue: weeklyDifference, cumulativeValue, volumeCount })
-                      }
+
+                    if (mouseX >= padding.left && mouseX <= padding.left + chartWidth && mouseY >= padding.top && mouseY <= padding.top + chartHeight) {
+                      // Map mouse to week position based on totalWeeks (x spacing uses totalWeeks)
+                      const relativeX = mouseX - padding.left
+                      const totalWeeks = plannedLineData.totalWeeks
+                      const weekPosition = Math.round((relativeX / chartWidth) * (totalWeeks - 1)) + 1 // 1..totalWeeks
+                      const clampedWeek = Math.max(1, Math.min(totalWeeks, weekPosition))
+                      const snappedIndex = Math.min(weeklyCumulativeData.elapsedWeeks - 1, clampedWeek - 1)
+
+                      const cumulativeValue = weeklyCumulativeData.points[snappedIndex]
+                      const previousValue = snappedIndex > 0 ? weeklyCumulativeData.points[snappedIndex - 1] : 0
+                      const weeklyDifference = cumulativeValue - previousValue
+                      const volumeCount = weeklyCumulativeData.volumeData[snappedIndex]
+
+                      const snappedX = padding.left + ((clampedWeek - 1) / (totalWeeks - 1)) * chartWidth
+
+                      setChartHover({ x: snappedX, weekIndex: snappedIndex, weeklyValue: weeklyDifference, cumulativeValue, volumeCount })
                     }
                   }}
                   onMouseLeave={() => setChartHover(null)}
@@ -1054,7 +1105,7 @@ function App() {
                           )
                         })}
 
-                        {/* Hover line and tooltip */}
+                        {/* Hover line and tooltip - snapped to nearest point */}
                         {chartHover && (
                           <>
                             {/* Vertical hover line */}
@@ -1067,6 +1118,15 @@ function App() {
                               strokeWidth="1" 
                               strokeDasharray="3 3"
                               opacity="0.7"
+                            />
+                            {/* Snap dot */}
+                            <circle
+                              cx={chartHover.x}
+                              cy={yForValue(actual[chartHover.weekIndex])}
+                              r="3.5"
+                              fill="#ffffff"
+                              stroke="#111827"
+                              strokeWidth="1"
                             />
                             
                             {/* Tooltip */}
@@ -1089,21 +1149,15 @@ function App() {
                                 </filter>
                               </defs>
                               
-                              <text x={chartHover.x + 18} y={padding.top + 28} fill="#374151" fontSize="11" fontWeight="600">
-                                KW {chartHover.weekIndex + 1}
-                              </text>
+                              <text x={chartHover.x + 18} y={padding.top + 28} fill="#374151" fontSize="11" fontWeight="600">KW {chartHover.weekIndex + 1}</text>
                               
-                              <text x={chartHover.x + 18} y={padding.top + 44} fill="#64748b" fontSize="10">
-                                Gesamt: {chartHover.cumulativeValue.toLocaleString('de-DE')}€
-                              </text>
+                              <text x={chartHover.x + 18} y={padding.top + 44} fill="#64748b" fontSize="10">Gesamt: {chartHover.cumulativeValue.toLocaleString('de-DE')}€</text>
                               
                               <text x={chartHover.x + 18} y={padding.top + 58} fill={chartHover.weeklyValue === 0 ? '#64748b' : chartHover.weeklyValue > 0 ? '#10b981' : '#ef4444'} fontSize="10" fontWeight="500">
                                 {chartHover.weeklyValue === 0 ? '±0€ zur Vorwoche' : (chartHover.weeklyValue > 0 ? '+' : '') + chartHover.weeklyValue.toLocaleString('de-DE') + '€ zur Vorwoche'}
                               </text>
                               
-                              <text x={chartHover.x + 18} y={padding.top + 72} fill="#64748b" fontSize="10">
-                                Volumen: {chartHover.volumeCount} Sell-ins
-                              </text>
+                              <text x={chartHover.x + 18} y={padding.top + 72} fill="#64748b" fontSize="10">Volumen: {chartHover.volumeCount} Sell-ins</text>
                             </g>
                           </>
                         )}
