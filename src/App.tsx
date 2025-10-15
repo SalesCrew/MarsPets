@@ -16,7 +16,7 @@ export type MarketData = {
 const Particle = ({ color, delay, index }: { color: 'blue' | 'red'; delay: number; index: number }) => {
   // Create more variety in paths
   const yOffset = Math.sin(index * 0.8) * 50 + Math.cos(index * 1.2) * 30 // More complex vertical movement
-  const animationName = `particleFlow${index % 4}` // Use different animation paths
+  const animationName = `particleFlow0` // Constrain to left-edge flow only
   
   const particleStyle: React.CSSProperties = {
     position: 'absolute',
