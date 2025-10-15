@@ -753,7 +753,7 @@ function App() {
                         <g transform={rotate}>
                           {/* Filled segments with full border for inner/outer edges and seams */}
                           <path d={donutPath(0, greenEnd)} fill="rgba(16,185,129,0.5)" stroke="rgba(16,185,129,0.8)" strokeWidth={2} />
-                          <path d={donutPath(greenEnd, 360)} fill="rgba(209,213,219,0.5)" stroke="rgba(209,213,219,0.8)" strokeWidth={2} />
+                          <path d={donutPath(greenEnd, 360)} fill="rgba(209,213,219,0.3)" stroke="rgba(209,213,219,0.8)" strokeWidth={2} />
 
                           <path d={rimPath(rOuter, 0, greenEnd)} stroke="rgba(16,185,129,0.8)" strokeWidth={2} fill="none" />
                           <path d={rimPath(rOuter, greenEnd, 360)} stroke="rgba(209,213,219,0.8)" strokeWidth={2} fill="none" />
