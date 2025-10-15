@@ -50,9 +50,8 @@ function App() {
   ])
   const [chatInput, setChatInput] = useState('')
   const [isTyping, setIsTyping] = useState(false)
-  const [aiStatus, setAiStatus] = useState('')
   const [aiSteps, setAiSteps] = useState<{ text: string; status: 'pending' | 'active' | 'completed' }[]>([])
-  const [currentStepIndex, setCurrentStepIndex] = useState(-1)
+  const [, setCurrentStepIndex] = useState(-1)
   const chatMessagesRef = useRef<HTMLDivElement>(null)
   
   // Grid card filters - one state per card
